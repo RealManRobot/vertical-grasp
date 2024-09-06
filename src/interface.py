@@ -3,7 +3,6 @@ from .catch import vertical_catch_main
 
 
 def vertical_catch(
-        center: list,
         mask: ndarray,
         depth_frame: ndarray,
         color_intr: dict,
@@ -17,13 +16,12 @@ def vertical_catch(
     """
     垂直抓取的主要函数
     Args:
-        center: 抓取中心一点，一般由mask算得
         mask: 物体轮廓信息
         depth_frame: 深度帧
         color_intr: 相机内参
         current_pose: 当前位姿
         arm_gripper_length: 夹爪长度
-        vertical_rx_ry_rz: 垂直注桌面的夹爪位姿角度
+        vertical_rx_ry_rz: 预设的夹爪垂直的位姿
         rotation_matrix: 手眼标定结果的转换矩阵
         translation_vector: 手眼标定结果的平移矩阵
         use_point_depth_or_mean: 是否使用平均深度还是单点深度，True：使用单点深度
@@ -32,7 +30,6 @@ def vertical_catch(
         垂直抓取的过程中的三个关键位姿点，按照顺序调用并加入夹爪开关闭合可以实现整套垂直抓取
     """
     return vertical_catch_main(
-        center,
         mask,
         depth_frame,
         color_intr,

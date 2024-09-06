@@ -3,12 +3,11 @@ import numpy as np
 from numpy import ndarray
 from typing import Tuple
 
-from vertical_grab.convert import convert
-from vertical_grab.crawl import chage_pose
+from vertical_grab.src.convert import convert
+from vertical_grab.src.crawl import chage_pose
 
 
 def vertical_catch_main(
-        center: list,
         mask: ndarray,
         depth_frame: ndarray,
         color_intr: dict,
@@ -26,7 +25,7 @@ def vertical_catch_main(
     :param color_intr:      相机的内参
     :param current_pose:    当前的位姿信息
     :param arm_gripper_length:      夹爪的长度
-    :param vertical_rx_ry_rz:       垂直注桌面的夹爪位姿角度
+    :param vertical_rx_ry_rz:       正确的夹爪偏移角度
     :param rotation_matrix:         手眼标定的旋转矩阵
     :param translation_vector:      手眼标定的平移矩阵
     :param use_point_depth_or_mean:     使用一个点位的深度信息还是整个物体的平均深度
@@ -37,6 +36,7 @@ def vertical_catch_main(
     finally_pose：           垂直抓取最终下爪的抓取位姿
     """
     # 开始凭着mask中心点位抓取``
+    _, center = compute_angle_with_mask(mask)
     real_x, real_y = center[0], center[1]
 
     # 修改对抓取点位深度信息的获取方式由单点改为整个mask的深度信息
@@ -76,7 +76,7 @@ def vertical_catch_main(
 
     # 计算偏转角度
     _angle = obj_pose[5] - vertical_rx_ry_rz[2]
-    angle_joint = compute_angle_with_mask(mask)
+    angle_joint, _ = compute_angle_with_mask(mask)
     angle = (angle_joint / 180) * 3.14 - _angle
     catch_pose = obj_pose.copy()
 
@@ -101,15 +101,23 @@ def vertical_catch_main(
 
 def compute_angle_with_mask(mask):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # 初始化最大外接矩形
+    min_rect = None
+    max_area = 0
 
-    # 计算最小外接矩形
-    rect = cv2.minAreaRect(contours[0])
+    for contour in contours:
+        # 计算最小外接矩形
+        center, (w, h), angle = cv2.minAreaRect(contour)
+        area = w * h
+        if area > max_area:
+            max_area = area
+            min_rect = center, (w, h), angle
 
     # 获取最小外接矩形的信息
-    center, (width, height), angle = rect
+    center, (width, height), angle = min_rect
 
     if width > height:
         angle = -(90 - angle)
     else:
         angle = angle
-    return angle
+    return angle, center
